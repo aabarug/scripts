@@ -7,7 +7,6 @@ argp = add_argument(argp, "--input", help="GRIDSS VCF")
 argp = add_argument(argp, "--output", help="High confidence somatic subset")
 argp = add_argument(argp, "--fulloutput", help="Full call set excluding obviously germline call.")
 argp = add_argument(argp, "--normalordinal", type="integer", nargs=Inf, default=c(1), help="Ordinal(s) of matching normal sample in the VCF")
-#argp = add_argument(argp, "--tumourordinal", type="integer", nargs=Inf, default=c(2), help="Ordinal(s) of tumour samples in the VCF")
 argv = parse_args(argp)
 # argv = parse_args(argp, argv=c("--input", "D:/hartwig/down/COLO829hg38.gridss.vcf", "--output", "D:/hartwig/temp/out.vcf", "-f", "D:/hartwig/temp/full.vcf", "-r", "BSgenome.Hsapiens.UCSC.hg38", "-p", "D:/hartwig/pon"))
 
