@@ -1,5 +1,7 @@
 library(tidyverse)
 library(visNetwork)
+library(GenomicRanges)
+library(Biostrings)
 
 CN_ROUNDING= 0.2
 CN_DIFF_MARGIN = 0.25
@@ -601,8 +603,137 @@ export_to_visNetwork = function(cndf, svdf, svgr, sampleId, file=paste0("breakpo
     nodes %>% mutate(size=pmin(size, 10) * rescaling$size),
     edges %>% mutate(width=pmin(width, 10) * rescaling$width, length=length * rescaling$length),
     height = "1000px", width = "100%") %>%
-    visLayout(improvedLayout=TRUE) %>%
+    #visLayout(improvedLayout=TRUE) %>%
+    visIgraphLayout(physics = TRUE) %>%
+    visPhysics(stabilization = FALSE) %>%
     visSave(file)
 }
-
+#' Generates a graph from GraphAnalyser
+generate_breakpoint_graph_visualisation = function(sampleId, cnFile, svFile, outputFile) {
+  cndf = read_tsv(
+    cnFile,
+    comment="#",
+    col_names=c(
+      "chromosome",
+      "start",
+      "end",
+      "copyNumber",
+      "bafCount",
+      "observedBaf",
+      "actualBaf",
+      "segmentStartSupport",
+      "segmentEndSupport",
+      "copyNumberMethod",
+      "depthWindowCount",
+      "gcContent",
+      "minStart",
+      "maxStart"),
+    col_types=cols(
+      chromosome = col_character(),
+      start = col_integer(),
+      end = col_integer(),
+      copyNumber = col_double(),
+      bafCount = col_integer(),
+      observedBaf = col_double(),
+      actualBaf = col_double(),
+      segmentStartSupport = col_character(),
+      segmentEndSupport = col_character(),
+      copyNumberMethod = col_character(),
+      depthWindowCount = col_integer(),
+      gcContent = col_double(),
+      minStart = col_integer(),
+      maxStart = col_integer()))
+  svdf=read_tsv(
+    svFile,
+    comment = "#",
+    na = c("", "NA", "null", "(null)"),
+    col_names = c(
+      "id",
+      "startChromosome",
+      "endChromosome",
+      "startPosition",
+      "endPosition",
+      "startOrientation",
+      "endOrientation",
+      "startHomologySequence",
+      "endHomologySequence",
+      "startAF",
+      "endAF",
+      "ploidy",
+      "adjustedStartAF",
+      "adjustedEndAF",
+      "adjustedStartCopyNumber",
+      "adjustedEndCopyNumber",
+      "adjustedStartCopyNumberChange",
+      "adjustedEndCopyNumberChange",
+      "insertSequence",
+      "type",
+      "filter",
+      "imprecise",
+      "qualScore",
+      "event",
+      "startTumourVariantFragmentCount",
+      "startTumourReferenceFragmentCount",
+      "startNormalVariantFragmentCount",
+      "startNormalReferenceFragmentCount",
+      "endTumourVariantFragmentCount",
+      "endTumourReferenceFragmentCount",
+      "endNormalVariantFragmentCount",
+      "endNormalReferenceFragmentCount",
+      "startIntervalOffsetStart",
+      "startIntervalOffsetEnd",
+      "endIntervalOffsetStart",
+      "endIntervalOffsetEnd",
+      "inexactHomologyOffsetStart",
+      "inexactHomologyOffsetEnd",
+      "startLinkedBy",
+      "endLinkedBy"),
+    col_types=cols(
+      id = col_character(),
+      startChromosome = col_character(),
+      endChromosome = col_character(),
+      startPosition = col_integer(),
+      endPosition = col_integer(),
+      startOrientation = col_character(),
+      endOrientation = col_character(),
+      startHomologySequence = col_character(),
+      endHomologySequence = col_character(),
+      startAF = col_double(),
+      endAF = col_double(),
+      ploidy = col_double(),
+      adjustedStartAF = col_double(),
+      adjustedEndAF = col_double(),
+      adjustedStartCopyNumber = col_double(),
+      adjustedEndCopyNumber = col_double(),
+      adjustedStartCopyNumberChange = col_double(),
+      adjustedEndCopyNumberChange = col_double(),
+      insertSequence = col_character(),
+      type = col_character(),
+      filter = col_character(),
+      imprecise = col_logical(),
+      qualScore = col_double(),
+      event = col_character(),
+      startTumourVariantFragmentCount = col_integer(),
+      startTumourReferenceFragmentCount = col_integer(),
+      startNormalVariantFragmentCount = col_integer(),
+      startNormalReferenceFragmentCount = col_integer(),
+      endTumourVariantFragmentCount = col_integer(),
+      endTumourReferenceFragmentCount = col_integer(),
+      endNormalVariantFragmentCount = col_integer(),
+      endNormalReferenceFragmentCount = col_integer(),
+      startIntervalOffsetStart = col_integer(),
+      startIntervalOffsetEnd = col_integer(),
+      endIntervalOffsetStart = col_integer(),
+      endIntervalOffsetEnd = col_integer(),
+      inexactHomologyOffsetStart = col_integer(),
+      inexactHomologyOffsetEnd = col_integer(),
+      startLinkedBy = col_character(),
+      endLinkedBy = col_character()))
+  cndf = cndf %>% mutate(sampleId=sampleId, id=paste0("reduced", row_number()))
+  svdf = svdf %>% mutate(sampleId=sampleId, vcfId=id) %>% replace_na(list(insertSequence=""))
+  cngr = to_cn_gr(cndf)
+  svgr = to_sv_gr(svdf, include.homology=FALSE)
+  svgr$cnid = annotate_sv_with_cnv_id(cngr, svgr, maxgap=1000)
+  export_to_visNetwork(cndf, svdf, svgr, sampleId, file=outputFile)
+}
 
