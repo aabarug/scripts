@@ -65,6 +65,21 @@ If a variant is somatic in both related samples then it's likely to be a TP.
 If it's not somatic in either then we want to filter it.
 
 ```{r}
+full_gridss_annotate_gr = function(gr, vcf, geno_suffix=c(".normal", ".tumour")) {
+	vcf = vcf[gr$vcfId,]
+	g = geno(vcf)
+	extra_df <- as.data.frame(as.data.frame(info(vcf)))
+	for (i in seq_along(geno_suffix)) {
+		if (!is.na(geno_suffix[i])) {
+			gdf = data.frame(QUAL=g$QUAL[,i])
+			for (col in names(g)) {
+				gdf[[paste0(col, geno_suffix[i])]] = g[[col]][,i]
+			}
+			extra_df <- bind_cols(extra_df, gdf)
+		}
+	}
+	mcols(gr) = bind_cols(as.data.frame(mcols(gr)), extra_df)
+}
 fulldf1 <- full_gridss_annotate_gr(gr, vcf)
 fulldf2 <- full_gridss_annotate_gr(gr, vcf, c(NA, NA, ".normal", ".tumour"))
 ggplot(fulldf1 %>% filter(is_somatic1 & is_somatic2)) + 
